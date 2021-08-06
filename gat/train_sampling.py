@@ -9,6 +9,7 @@ from gat import SampleGAT
 
 from dgl.data import RedditDataset
 from sampler import sample_block
+import dataset
 
 def load_subtensor(nfeat, labels, seeds, input_nodes, device):
     """
@@ -19,17 +20,10 @@ def load_subtensor(nfeat, labels, seeds, input_nodes, device):
     return batch_inputs, batch_labels
 
 
-def main(args):
-    device = "cuda:0"
-    data = RedditDataset(self_loop=True)
-    _g = data[0]
+def run(args, device, data):
 
-    train_g = _g
-    train_nfeat = _g.ndata.pop('feat')
-    train_labels = _g.ndata.pop('label')
+    n_classes, train_g, train_nfeat, train_labels, train_nid = data
 
-    n_classes = data.num_classes
-    train_nid = torch.nonzero(train_g.ndata['train_mask'], as_tuple=True)[0]
     idx = torch.randperm(train_nid.nelement())
     train_nid = train_nid[idx]
     train_nid = train_nid.to(device)
@@ -103,6 +97,8 @@ def main(args):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
+    argparser.add_argument('--gpu', type=int, default=0,
+                           help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--dataset', type=str, default='reddit')
     argparser.add_argument('--num-epochs', type=int, default=20)
     argparser.add_argument("--num-hidden", type=int, default=8,
@@ -127,6 +123,23 @@ if __name__ == "__main__":
                         help="use residual connection")
     argparser.add_argument('--weight-decay', type=float, default=5e-4,
                         help="weight decay")
+    argparser.add_argument('--in-feat', type=int, default=256)
     args = argparser.parse_args()
 
-    main(args)
+    device = torch.device('cuda:%d' % args.gpu)
+    if args.dataset == 'reddit':
+        g, n_classes, train_nid = dataset.load_reddit()
+    elif args.dataset == 'ogbn-products':
+        g, n_classes, train_nid = dataset.load_ogbn_products()
+    elif args.dataset == 'cit-patents':
+        g, n_classes, train_nid = dataset.load_cit_patents()
+    else:
+        raise Exception('unknown dataset')
+
+    train_g =  g
+    train_nfeat = torch.randn((g.num_nodes(), args.in_feat)).to(device)
+    train_labels = torch.randint(0, n_classes, (g.num_nodes(),)).to(device)
+
+    # Pack data
+    data = n_classes, train_g, train_nfeat, train_labels, train_nid
+    run(args, device, data)

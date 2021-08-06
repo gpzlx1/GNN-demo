@@ -1,18 +1,20 @@
+import argparse
+from dataset import load_cit_patents
+import time
+
+import dataset
 import dgl
+import dgl.nn.pytorch as dglnn
 import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import dgl.nn.pytorch as dglnn
-import time
-import argparse
 import tqdm
 from dgl import backend
+from sampler import sample_block
 
 from model import SAGE
-from load_graph import load_reddit, inductive_split, load_ogb
-from sampler import sample_block
 
 
 def load_subtensor(nfeat, labels, seeds, input_nodes, device):
@@ -26,9 +28,8 @@ def load_subtensor(nfeat, labels, seeds, input_nodes, device):
 #### Entry point
 def run(args, device, data):
     # Unpack data
-    n_classes, train_g, train_nfeat, train_labels = data
+    n_classes, train_g, train_nfeat, train_labels, train_nid = data
     in_feats = train_nfeat.shape[1]
-    train_nid = th.nonzero(train_g.ndata['train_mask'], as_tuple=True)[0]
 
     idx = th.randperm(train_nid.nelement())
     train_nid = train_nid[idx]
@@ -94,30 +95,30 @@ if __name__ == '__main__':
                            help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--dataset', type=str, default='reddit')
     argparser.add_argument('--num-epochs', type=int, default=20)
-    argparser.add_argument('--num-hidden', type=int, default=16)
+    argparser.add_argument('--num-hidden', type=int, default=128)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='10,25')
     argparser.add_argument('--batch-size', type=int, default=1000)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--lr', type=float, default=0.003)
     argparser.add_argument('--dropout', type=float, default=0.5)
+    argparser.add_argument('--in-feat', type=int, default=256)
     args = argparser.parse_args()
 
     device = th.device('cuda:%d' % args.gpu)
     if args.dataset == 'reddit':
-        g, n_classes = load_reddit()
+        g, n_classes, train_nid = dataset.load_reddit()
     elif args.dataset == 'ogbn-products':
-        g, n_classes = load_ogb('ogbn-products')
+        g, n_classes, train_nid = dataset.load_ogbn_products()
+    elif args.dataset == 'cit-patents':
+        g, n_classes, train_nid = dataset.load_cit_patents()
     else:
         raise Exception('unknown dataset')
 
     train_g =  g
-    train_nfeat = g.ndata.pop('features')
-    train_labels = g.ndata.pop('labels')
-
-    train_nfeat = train_nfeat.to(device)
-    train_labels = train_labels.to(device)
+    train_nfeat = th.randn((g.num_nodes(), args.in_feat)).to(device)
+    train_labels = th.randint(0, n_classes, (g.num_nodes(),)).to(device)
 
     # Pack data
-    data = n_classes, train_g, train_nfeat, train_labels
+    data = n_classes, train_g, train_nfeat, train_labels, train_nid
     run(args, device, data)
