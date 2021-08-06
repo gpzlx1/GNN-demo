@@ -57,6 +57,7 @@ def run(args, device, data):
 
             th.cuda.nvtx.range_push("Iterations")
 
+            th.cuda.nvtx.range_push("sample")
             seeds = train_nid[step * args.batch_size : (step + 1) * args.batch_size]
             blocks = []
             nodes_all_types = [backend.to_dgl_nd(seeds)]
@@ -66,6 +67,8 @@ def run(args, device, data):
                 blocks.insert(0, block)
                 th.cuda.nvtx.range_pop()
             input_nodes = blocks[0].srcdata[dgl.NID]
+            th.cuda.nvtx.range_pop()
+            
             
             th.cuda.nvtx.range_push("Fetch_Features")
             batch_inputs, batch_labels = load_subtensor(train_nfeat, train_labels,
@@ -111,7 +114,7 @@ if __name__ == '__main__':
                            help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--dataset', type=str, default='reddit')
     argparser.add_argument('--num-epochs', type=int, default=3)
-    argparser.add_argument('--num-hidden', type=int, default=128)
+    argparser.add_argument('--num-hidden', type=int, default=16)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='10,25')
     argparser.add_argument('--batch-size', type=int, default=1000)
