@@ -24,17 +24,19 @@ def load_ogbn_products():
     n_classes = 41
     train_nid = splitted_idx['train']
     g.ndata.clear()
+    g = dgl.remove_self_loop(g)
+    g = dgl.add_self_loop(g)
     return g, n_classes, train_nid
 
 def load_cit_patents():
-    cache_path = "/home/ubuntu/kernelFusion/dataset/cit-Patents/data.bin"
+    cache_path = "/home/ubuntu/demo/datasets/cit-Patents/data.bin"
     if os.path.exists(cache_path):
         g = dgl.data.utils.load_graphs(cache_path)[0][0]
         train_nid = th.arange(0, g.number_of_nodes(), dtype=th.int64)
         n_classes = 41
         return g, n_classes, train_nid
 
-    source_path = "/home/ubuntu/kernelFusion/dataset/cit-Patents/cit-Patents.txt"
+    source_path = "/home/ubuntu/demo/datasets/cit-Patents/cit-Patents.txt"
     out = None
     with open(source_path, 'r') as f:
         out = f.readlines()
@@ -61,6 +63,8 @@ def load_cit_patents():
             dst.append(int(map_dir[edge[1]]))
 
     g = dgl.graph((src, dst), num_nodes=3774768)
+    g = dgl.remove_self_loop(g)
+    g = dgl.add_self_loop(g)
     dgl.save_graphs(cache_path, [g])
 
     train_nid = th.arange(0, g.number_of_nodes(), dtype=th.int64)

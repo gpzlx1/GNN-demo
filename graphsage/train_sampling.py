@@ -59,7 +59,7 @@ def run(args, device, data):
             blocks = []
             nodes_all_types = [backend.to_dgl_nd(seeds)]
             for num_picks in fan_out:
-                block, nodes_all_types = sample_block(train_g, nodes_all_types, 10, False)
+                block, nodes_all_types = sample_block(train_g, nodes_all_types, num_picks, False)
                 blocks.insert(0, block)
             input_nodes = blocks[0].srcdata[dgl.NID]
             
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     argparser.add_argument('--gpu', type=int, default=0,
                            help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--dataset', type=str, default='reddit')
-    argparser.add_argument('--num-epochs', type=int, default=20)
+    argparser.add_argument('--num-epochs', type=int, default=5)
     argparser.add_argument('--num-hidden', type=int, default=128)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='10,25')

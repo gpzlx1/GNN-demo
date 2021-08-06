@@ -65,7 +65,7 @@ def run(args, device, data):
             blocks = []
             nodes_all_types = [backend.to_dgl_nd(seeds)]
             for num_picks in fan_out:
-                block, nodes_all_types = sample_block(train_g, nodes_all_types, 10, False)
+                block, nodes_all_types = sample_block(train_g, nodes_all_types, num_picks, False)
                 blocks.insert(0, block)
             input_nodes = blocks[0].srcdata[dgl.NID]
 
