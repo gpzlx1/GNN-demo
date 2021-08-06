@@ -8,3 +8,5 @@ __pycache__
 *.qdrep
 dataset
 datasets
+*.qdrep
+*.sqlite
