@@ -100,33 +100,3 @@ class SampleGAT(nn.Module):
 
         logits = self.gat_layers[-1](blocks[-1], h).mean(1)
         return logits
-
-    def inference(self, g, x, device, batch_size, num_workers):
-        for l, layer in enumerate(self.gat_layers):
-            y = torch.zeros(g.num_nodes(), self.num_hidden * self.heads[l] if l != len(self.gat_layers) - 1 else self.num_classes)
-
-            sampler = dgl.dataloading.MultiLayerFullNeighborSampler(1)
-            dataloader = dgl.dataloading.NodeDataLoader(
-                g,
-                torch.arange(g.num_nodes()).to(g.device),
-                sampler,
-                batch_size=batch_size,
-                shuffle=True,
-                drop_last=False,
-                num_workers=num_workers)
-
-            for input_nodes, output_nodes, blocks in tqdm.tqdm(dataloader):
-                block = blocks[0]
-
-                block = block.to(device)
-                h = x[input_nodes].to(device)
-                h = layer(block, h)
-                if l != len(self.gat_layers) - 1:
-                    h = h.flatten(1)
-                else:
-                    h = h.mean(1)
-
-                y[output_nodes] = h.cpu()
-
-            x = y
-        return y
