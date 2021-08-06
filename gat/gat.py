@@ -96,7 +96,11 @@ class SampleGAT(nn.Module):
         h = inputs
 
         for block, l in zip(blocks, range(self.num_layers)):
+            torch.cuda.nvtx.range_push("layer_{}".format(l))
             h = self.gat_layers[l](block, h).flatten(1)
+            torch.cuda.nvtx.range_pop()
 
+        torch.cuda.nvtx.range_push("layer_{}".format(self.num_layers))
         logits = self.gat_layers[-1](blocks[-1], h).mean(1)
+        torch.cuda.nvtx.range_pop()
         return logits
