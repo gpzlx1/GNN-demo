@@ -10,3 +10,5 @@ dataset
 datasets
 *.qdrep
 *.sqlite
+my_venv
+out
