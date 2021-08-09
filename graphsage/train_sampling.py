@@ -102,23 +102,24 @@ def run(args, device, data):
             th.cuda.nvtx.range_pop()
 
         toc = time.time()
-        if epoch >= 5:
-            avg += toc - tic
+        avg += toc - tic
         print('Epoch Time(s): {:.4f}'.format(toc - tic))
 
-    print('Avg epoch time: {}'.format(avg / (epoch - 4)))
+    steps = (train_nid.nelement() + args.batch_size - 1) // args.batch_size
+    print('Avg epoch time: {}; avg iterations times: {}'.format(avg / (max(epoch,1)), 
+        avg / (max(epoch,1)) / steps))
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--gpu', type=int, default=0,
                            help="GPU device ID. Use -1 for CPU training")
     argparser.add_argument('--dataset', type=str, default='reddit')
-    argparser.add_argument('--num-epochs', type=int, default=3)
+    argparser.add_argument('--num-epochs', type=int, default=1)
     argparser.add_argument('--num-hidden', type=int, default=16)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='10,25')
     argparser.add_argument('--batch-size', type=int, default=1000)
-    argparser.add_argument('--log-every', type=int, default=20)
+    argparser.add_argument('--log-every', type=int, default=50)
     argparser.add_argument('--lr', type=float, default=0.003)
     argparser.add_argument('--dropout', type=float, default=0.5)
     argparser.add_argument('--in-feat', type=int, default=256)
