@@ -92,19 +92,25 @@ def run(args, device, data):
             #th.cuda.nvtx.range_pop()
 
             iter_ts.append((time.time() - tic_step))
-            if step % args.log_every == 0:
-                acc = 0
-                gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
-                print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
-                    epoch, step, loss.item(), acc, np.mean(iter_ts[3:]), gpu_mem_alloc))
+            #if step % args.log_every == 0:
+            #    acc = 0
+            #    gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
+            #    print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
+            #        epoch, step, loss.item(), acc, np.mean(iter_ts[3:]), gpu_mem_alloc))
             tic_step = time.time()
 
             #th.cuda.nvtx.range_pop()
 
         toc = time.time()
         avg += toc - tic
-        print('Epoch Time(s): {:.4f}'.format(toc - tic))
-        print("{:.4f}, {:.4f}, {:.4f}, {:.4f}".format(np.mean(iter_ts[3:-2]), np.std(iter_ts[3:-2]), np.max(iter_ts[3:-2]), np.min(iter_ts[3:-2])))
+        if args.num_epochs == 1 or epoch > 0:
+            #print('Epoch Time(s): {:.4f}'.format(toc - tic))
+            #mean, 
+            print("{:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}".format(np.max(iter_ts[3:-2]), 
+                np.percentile(iter_ts[3:-2], 75),
+                np.percentile(iter_ts[3:-2], 50),
+                np.percentile(iter_ts[3:-2], 25),
+                np.min(iter_ts[3:-2])))
 
     #steps = (train_nid.nelement() + args.batch_size - 1) // args.batch_size * (epoch + 1)
     #print('Avg epoch time: {}; avg iterations times: {}'.format(avg / (epoch + 1), 
