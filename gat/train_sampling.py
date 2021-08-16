@@ -61,39 +61,39 @@ def run(args, device, data):
         tic_step = time.time()
         for step in range((train_nid.nelement() + args.batch_size - 1) // args.batch_size):
 
-            torch.cuda.nvtx.range_push("Iterations")
+            #th.cuda.nvtx.range_push("Iterations")
 
-            torch.cuda.nvtx.range_push("sample")
+            #th.cuda.nvtx.range_push("sample")
             seeds = train_nid[step * args.batch_size : (step + 1) * args.batch_size]
             blocks = []
             nodes_all_types = [backend.to_dgl_nd(seeds)]
             for i, num_picks in enumerate(fan_out):
-                torch.cuda.nvtx.range_push("{}-hops sample".format(i))
+                #th.cuda.nvtx.range_push("{}-hops sample".format(i))
                 block, nodes_all_types = sample_block(train_g, nodes_all_types, num_picks, False)
                 blocks.insert(0, block)
-                torch.cuda.nvtx.range_pop()
+                #th.cuda.nvtx.range_pop()
             input_nodes = blocks[0].srcdata[dgl.NID]
-            torch.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
 
-            torch.cuda.nvtx.range_push("Fetch_Features")
+            #th.cuda.nvtx.range_push("Fetch_Features")
             batch_inputs, batch_labels = load_subtensor(train_nfeat, train_labels,
                                                         seeds, input_nodes, device)
             blocks = [block.to(device) for block in blocks]
-            torch.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
 
-            torch.cuda.nvtx.range_push("Forward")
+            #th.cuda.nvtx.range_push("Forward")
             batch_pred = model(blocks, batch_inputs)
-            torch.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
 
-            torch.cuda.nvtx.range_push("Loss")
+            #th.cuda.nvtx.range_push("Loss")
             loss = loss_fcn(batch_pred, batch_labels)
-            torch.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
 
-            torch.cuda.nvtx.range_push("Backward")
+            #th.cuda.nvtx.range_push("Backward")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            torch.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
 
             iter_tput.append(len(seeds) / (time.time() - tic_step))
             if step % args.log_every == 0:
@@ -103,7 +103,7 @@ def run(args, device, data):
                     epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
             tic_step = time.time()
         
-            torch.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
 
         toc = time.time()
         print('Epoch Time(s): {:.4f}'.format(toc - tic))

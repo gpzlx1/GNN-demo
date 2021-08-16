@@ -30,12 +30,12 @@ class SAGE(nn.Module):
     def forward(self, blocks, x):
         h = x
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
-            th.cuda.nvtx.range_push("layer_{}".format(l))
+            #th.cuda.nvtx.range_push("layer_{}".format(l))
             h = layer(block, h)
             if l != len(self.layers) - 1:
-                th.cuda.nvtx.range_push("active + drop")
+                #th.cuda.nvtx.range_push("active + drop")
                 h = self.activation(h)
                 h = self.dropout(h)
-                th.cuda.nvtx.range_pop()
-            th.cuda.nvtx.range_pop()
+                #th.cuda.nvtx.range_pop()
+            #th.cuda.nvtx.range_pop()
         return h
