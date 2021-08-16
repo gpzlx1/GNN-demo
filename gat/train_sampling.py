@@ -54,8 +54,9 @@ def run(args, device, data):
 
     fan_out = [int(fanout) for fanout in args.fan_out.split(',')]
     avg = 0
-    iter_tput = []
+    
     for epoch in range(args.num_epochs):
+        iter_ts = []
         tic = time.time()
 
         tic_step = time.time()
@@ -95,25 +96,27 @@ def run(args, device, data):
             optimizer.step()
             #th.cuda.nvtx.range_pop()
 
-            iter_tput.append(len(seeds) / (time.time() - tic_step))
+            iter_ts.append(time.time() - tic_step)
             if step % args.log_every == 0:
                 acc = 0
                 gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
-                    epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
+                    epoch, step, loss.item(), acc, np.mean(iter_ts[3:]), gpu_mem_alloc))
             tic_step = time.time()
         
             #th.cuda.nvtx.range_pop()
 
+
         toc = time.time()
         print('Epoch Time(s): {:.4f}'.format(toc - tic))
-        
+        print("{:.4f}, {:.4f}, {:.4f}, {:.4f}".format(np.mean(iter_ts[3:-2]), np.std(iter_ts[3:-2]), np.max(iter_ts[3:-2]), np.min(iter_ts[3:-2])))
+
         avg += toc - tic
 
 
-    steps = (train_nid.nelement() + args.batch_size - 1) // args.batch_size
-    print('Avg epoch time: {}; avg iterations times: {}'.format(avg / (max(epoch,1)), 
-        avg / (max(epoch,1)) / steps))
+    #steps = (train_nid.nelement() + args.batch_size - 1) // args.batch_size * (epoch + 1)
+    #print('Avg epoch time: {}; avg iterations times: {}'.format(avg / (epoch + 1), 
+    #    avg / steps))
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
