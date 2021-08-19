@@ -7,7 +7,6 @@ import dgl
 from dgl import backend
 from gat import SampleGAT
 
-from dgl.data import RedditDataset
 from sampler import sample_block
 import dataset
 
