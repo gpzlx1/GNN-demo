@@ -63,10 +63,13 @@ def run(args, device, data):
         print("dstnode: {:.0f} {:.0f} {:.0f}".format(np.mean(dstnodes_layers[i]), np.percentile(dstnodes_layers[i], 97), np.percentile(dstnodes_layers[i], 3)))
         print("edge: {:.0f} {:.0f} {:.0f}".format(np.mean(edges_layers[i]), np.percentile(edges_layers[i], 97), np.percentile(edges_layers[i], 3)))
         degree = []
+        node = []
         for n1, n2, e in zip(srcnodes_layers[i], dstnodes_layers[i], edges_layers[i]):
             degree.append(float(e) / float(n1+n2))
+            node.append(n1+n2)
 
         print("degree: {} {} {}".format(np.mean(degree), np.percentile(degree, 97), np.percentile(degree, 3)))
+        print("node: {} {} {}".format(np.mean(node), np.percentile(node, 97), np.percentile(node, 3)))
     
  
         
