@@ -115,9 +115,11 @@ def main(args):
     dur = []
     for epoch in range(args.n_epochs):
         model.train()
-        if epoch >= 3:
-            torch.cuda.synchronize()
-            t0 = time.time()
+        
+        # count
+        torch.cuda.synchronize()
+        t0 = time.time()
+
         # forward
         torch.cuda.nvtx.range_push("forward")
         logits = model(g, train_nfeat)
@@ -133,19 +135,22 @@ def main(args):
         optimizer.step()
         torch.cuda.nvtx.range_pop()
 
-        if epoch >= 3:
-            torch.cuda.synchronize()
-            dur.append(time.time() - t0)
+        # count
+        torch.cuda.synchronize()
+        dur.append(time.time() - t0)
 
         #acc = evaluate(model, g, train_nfeat, train_labels, train_nid)
         acc = 0
         print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f} | Accuracy {:.4f} | "
-              "ETputs(KTEPS) {:.2f}".format(epoch, np.mean(dur), loss.item(),
-                                            acc, n_edges / np.mean(dur) / 1000))
+              "ETputs(KTEPS) {:.2f}".format(epoch, np.mean(dur[3:]), loss.item(),
+                                            acc, n_edges / np.mean(dur[3:]) / 1000))
 
     print()
-    acc = evaluate(model, g, train_nfeat, train_labels, train_nid)
-    print("Test Accuracy {:.4f}".format(acc))
+    #acc = evaluate(model, g, train_nfeat, train_labels, train_nid)
+    #print("Test Accuracy {:.4f}".format(acc))
+    print('{:.3f} {:.3f} {:.3f}'.format(np.mean(dur[3:]), 
+        np.percentile(dur[3:], 97),
+        np.percentile(dur[3:], 3)))
 
 
 if __name__ == '__main__':

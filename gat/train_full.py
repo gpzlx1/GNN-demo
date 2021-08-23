@@ -62,8 +62,10 @@ def main(args, device, data):
     dur = []
     for epoch in range(args.epochs):
         model.train()
-        if epoch >= 3:
-            t0 = time.time()
+        
+        # count
+        t0 = time.time()
+        
         # forward
         logits = model(train_nfeat)
         loss = loss_fcn(logits[train_nid], train_labels[train_nid])
@@ -72,16 +74,22 @@ def main(args, device, data):
         loss.backward()
         optimizer.step()
 
-        if epoch >= 3:
-            dur.append(time.time() - t0)
+        # count
+        dur.append(time.time() - t0)
 
 
-        print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f} | TrainAcc {:.4f} |"
-              " ValAcc {:.4f} | ETputs(KTEPS) {:.2f}".
-              format(epoch, np.mean(dur), loss.item(), 0,
-                     0, n_edges / np.mean(dur) / 1000))
+        acc = 0
+        print("Epoch {:05d} | Time(s) {:.4f} | Loss {:.4f} | Accuracy {:.4f} | "
+              "ETputs(KTEPS) {:.2f}".format(epoch, np.mean(dur), loss.item(),
+                                            acc, n_edges / np.mean(dur[3:]) / 1000))
 
     print()
+    print(dur)
+    #acc = evaluate(model, g, train_nfeat, train_labels, train_nid)
+    #print("Test Accuracy {:.4f}".format(acc))
+    print('{:.3f} {:.3f} {:.3f}'.format(np.mean(dur[3:]), 
+        np.percentile(dur[3:], 97),
+        np.percentile(dur[3:], 3)))
 
 
 if __name__ == '__main__':
