@@ -1,4 +1,6 @@
 import argparse
+
+from numpy.lib.function_base import percentile
 from dataset import load_cit_patents
 import time
 
@@ -6,7 +8,7 @@ import dataset
 import dgl
 import dgl.nn.pytorch as dglnn
 import numpy as np
-import torch as th
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -31,7 +33,7 @@ def run(args, device, data):
     n_classes, train_g, train_nfeat, train_labels, train_nid = data
     in_feats = train_nfeat.shape[1]
 
-    idx = th.randperm(train_nid.nelement())
+    idx = torch.randperm(train_nid.nelement())
     train_nid = train_nid[idx]
     train_nid = train_nid.to(device)
     train_g = train_g.formats(['csc'])
@@ -55,59 +57,60 @@ def run(args, device, data):
         for step in range((train_nid.nelement() + args.batch_size - 1) // args.batch_size):
             # Load the input features as well as output labels
 
-            th.cuda.nvtx.range_push("Iterations")
+            torch.cuda.nvtx.range_push("Iterations")
 
-            th.cuda.nvtx.range_push("sample")
+            torch.cuda.nvtx.range_push("sample")
             seeds = train_nid[step * args.batch_size : (step + 1) * args.batch_size]
             blocks = []
             nodes_all_types = [backend.to_dgl_nd(seeds)]
             for i, num_picks in enumerate(fan_out):
-                th.cuda.nvtx.range_push("{}-hops sample".format(i))
+                torch.cuda.nvtx.range_push("{}-hops sample".format(i))
                 block, nodes_all_types = sample_block(train_g, nodes_all_types, num_picks, False)
                 blocks.insert(0, block)
-                th.cuda.nvtx.range_pop()
+                torch.cuda.nvtx.range_pop()
             input_nodes = blocks[0].srcdata[dgl.NID]
-            th.cuda.nvtx.range_pop()
+            torch.cuda.nvtx.range_pop()
             
             
-            th.cuda.nvtx.range_push("Fetch_Features")
+            torch.cuda.nvtx.range_push("Fetch_Features")
             batch_inputs, batch_labels = load_subtensor(train_nfeat, train_labels,
                                                         seeds, input_nodes, device)
             blocks = [block.to(device) for block in blocks]
-            th.cuda.nvtx.range_pop()
+            torch.cuda.nvtx.range_pop()
 
             # Compute loss and prediction
-            th.cuda.nvtx.range_push("Forward")
+            torch.cuda.nvtx.range_push("Forward")
             batch_pred = model(blocks, batch_inputs)
-            th.cuda.nvtx.range_pop()
+            torch.cuda.nvtx.range_pop()
 
-            th.cuda.nvtx.range_push("Loss")
+            torch.cuda.nvtx.range_push("Loss")
             loss = loss_fcn(batch_pred, batch_labels)
-            th.cuda.nvtx.range_pop()
+            torch.cuda.nvtx.range_pop()
 
-            th.cuda.nvtx.range_push("Backward")
+            torch.cuda.nvtx.range_push("Backward")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            th.cuda.nvtx.range_pop()
+            torch.cuda.nvtx.range_pop()
 
-            iter_tput.append(len(seeds) / (time.time() - tic_step))
+            iter_tput.append(time.time() - tic_step)
             if step % args.log_every == 0:
                 acc = 0
-                gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
+                gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
-                    epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
+                    epoch, step, loss.item(), acc, len(seeds) / np.mean(iter_tput[-args.log_every:]), gpu_mem_alloc))
             tic_step = time.time()
 
-            th.cuda.nvtx.range_pop()
+            torch.cuda.nvtx.range_pop()
 
         toc = time.time()
         avg += toc - tic
         print('Epoch Time(s): {:.4f}'.format(toc - tic))
 
-    steps = (train_nid.nelement() + args.batch_size - 1) // args.batch_size
-    print('Avg epoch time: {}; avg iterations times: {}'.format(avg / (max(epoch,1)), 
-        avg / (max(epoch,1)) / steps))
+    print('Avg epoch time: {:.3f}'.format(avg / (epoch + 1)))
+    print('{:.3f} {:.3f} {:.3f}'.format(np.mean(iter_tput[10:]) * 1000, 
+        np.percentile(iter_tput[10:], 97) * 1000,
+        np.percentile(iter_tput[10:], 3) * 1000))
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
@@ -125,7 +128,7 @@ if __name__ == '__main__':
     argparser.add_argument('--in-feat', type=int, default=256)
     args = argparser.parse_args()
 
-    device = th.device('cuda:%d' % args.gpu)
+    device = torch.device('cuda:%d' % args.gpu)
     if args.dataset == 'reddit':
         g, n_classes, train_nid = dataset.load_reddit()
     elif args.dataset == 'ogbn-products':
@@ -136,9 +139,11 @@ if __name__ == '__main__':
         raise Exception('unknown dataset')
 
     train_g =  g
-    train_nfeat = th.randn((g.num_nodes(), args.in_feat)).to(device)
-    train_labels = th.randint(0, n_classes, (g.num_nodes(),)).to(device)
+    train_nfeat = torch.randn((g.num_nodes(), args.in_feat)).to(device)
+    train_labels = torch.randint(0, n_classes, (g.num_nodes(),)).to(device)
 
     # Pack data
     data = n_classes, train_g, train_nfeat, train_labels, train_nid
+
+    print(args)
     run(args, device, data)

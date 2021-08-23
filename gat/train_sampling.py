@@ -94,12 +94,12 @@ def run(args, device, data):
             optimizer.step()
             torch.cuda.nvtx.range_pop()
 
-            iter_tput.append(len(seeds) / (time.time() - tic_step))
+            iter_tput.append(time.time() - tic_step)
             if step % args.log_every == 0:
                 acc = 0
                 gpu_mem_alloc = torch.cuda.max_memory_allocated() / 1000000 if torch.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MB'.format(
-                    epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
+                    epoch, step, loss.item(), acc, len(seeds) / np.mean(iter_tput[-args.log_every:]), gpu_mem_alloc))
             tic_step = time.time()
         
             torch.cuda.nvtx.range_pop()
@@ -110,9 +110,10 @@ def run(args, device, data):
         avg += toc - tic
 
 
-    steps = (train_nid.nelement() + args.batch_size - 1) // args.batch_size
-    print('Avg epoch time: {}; avg iterations times: {}'.format(avg / (max(epoch,1)), 
-        avg / (max(epoch,1)) / steps))
+    print('Avg epoch time: {:.3f}'.format(avg / (epoch + 1)))
+    print('{:.3f} {:.3f} {:.3f}'.format(np.mean(iter_tput[10:]) * 1000, 
+        np.percentile(iter_tput[10:], 97) * 1000,
+        np.percentile(iter_tput[10:], 3) * 1000))
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
