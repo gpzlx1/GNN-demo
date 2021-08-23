@@ -111,7 +111,7 @@ def run(args, device, data):
 
 
     print('Avg epoch time: {:.3f}'.format(avg / (epoch + 1)))
-    print('{:.3f} {:.3f} {:.3f}'.format(np.mean(iter_tput[10:]) * 1000, 
+    print('{:.4f} {:.4f} {:.4f}'.format(np.mean(iter_tput[10:]) * 1000, 
         np.percentile(iter_tput[10:], 97) * 1000,
         np.percentile(iter_tput[10:], 3) * 1000))
 

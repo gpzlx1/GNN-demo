@@ -87,7 +87,7 @@ def main(args, device, data):
     print(dur)
     #acc = evaluate(model, g, train_nfeat, train_labels, train_nid)
     #print("Test Accuracy {:.4f}".format(acc))
-    print('{:.3f} {:.3f} {:.3f}'.format(np.mean(dur[3:]), 
+    print('{:.4f} {:.4f} {:.4f}'.format(np.mean(dur[3:]), 
         np.percentile(dur[3:], 97),
         np.percentile(dur[3:], 3)))
 
