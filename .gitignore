@@ -11,4 +11,5 @@ datasets
 *.qdrep
 *.sqlite
 my_venv
+*.sh
 out
