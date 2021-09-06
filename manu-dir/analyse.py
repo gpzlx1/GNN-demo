@@ -66,3 +66,10 @@ for step, time in enumerate(timeline_lists):
     timeline_sum.append(sum(time))
 
 print(average(timeline_sum[10:30]))
+
+with open("one_iterations.csv", 'w') as f:
+    csv_writer = csv.writer(f)
+    csv_writer.writerow(["name", "time"])
+    print(len(kernel_lists[15]))
+    for data in zip(kernel_lists[15], timeline_lists[15]):
+        csv_writer.writerow(data)
