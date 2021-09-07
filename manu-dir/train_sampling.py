@@ -50,6 +50,8 @@ def run(args, device, data):
     # Training loop
     avg = 0
     iter_tput = []
+    time_list = [0, 0, 0, 0]
+    count = 0
     for epoch in range(args.num_epochs):
         tic = time.time()
 
@@ -78,10 +80,15 @@ def run(args, device, data):
             blocks = [block.to(device) for block in blocks]
             torch.cuda.nvtx.range_pop()
 
+
             # Compute loss and prediction
             torch.cuda.nvtx.range_push("Forward")
-            batch_pred = model(blocks, batch_inputs)
+            batch_pred, times = model(blocks, batch_inputs)
             torch.cuda.nvtx.range_pop()
+
+            for index, t in enumerate(times):
+                count = count + 1
+                time_list[index] = time_list[index] + t
 
             torch.cuda.nvtx.range_push("Loss")
             loss = loss_fcn(batch_pred, batch_labels)
@@ -111,6 +118,10 @@ def run(args, device, data):
     print('{:.4f} {:.4f} {:.4f}'.format(np.mean(iter_tput[10:]) * 1000, 
         np.percentile(iter_tput[10:], 97) * 1000,
         np.percentile(iter_tput[10:], 3) * 1000))
+
+    count = count / 4
+    for t in time_list:
+        print(t / count)
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()

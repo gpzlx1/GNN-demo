@@ -6,6 +6,7 @@ import dgl.nn as dglnn
 import sklearn.linear_model as lm
 import sklearn.metrics as skm
 import tqdm
+import time
 
 class SAGE(nn.Module):
     def __init__(self, in_feats, n_hidden, n_classes, n_layers, activation, dropout):
@@ -29,13 +30,22 @@ class SAGE(nn.Module):
 
     def forward(self, blocks, x):
         h = x
+        time_list = []
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
             th.cuda.nvtx.range_push("layer_{}".format(l))
+
+            th.cuda.synchronize()
+            begin = time.time()
             h = layer(block, h)
+            
+
             if l != len(self.layers) - 1:
                 th.cuda.nvtx.range_push("active + drop")
                 h = self.activation(h)
                 h = self.dropout(h)
                 th.cuda.nvtx.range_pop()
             th.cuda.nvtx.range_pop()
-        return h
+
+            th.cuda.synchronize()
+            time_list.append((time.time() - begin) * 1000)
+        return h, time_list
